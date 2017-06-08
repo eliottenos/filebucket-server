@@ -1,43 +1,47 @@
 'use strict';
-
 const controller = require('lib/wiring/controller');
 const models = require('app/models');
 const Upload = models.upload;
-
+const User = models.user;
 const multer = require('multer')
 const multerUpload = multer({ dest: '/tmp/' })
-
 const authenticate = require('./concerns/authenticate');
 const setUser = require('./concerns/set-current-user');
 const setModel = require('./concerns/set-mongoose-model');
-
 const s3Upload = require('lib/aws-s3-upload')
 const s3Delete = require('lib/aws-s3-delete')
-
 const index = (req, res, next) => {
+  console.log('I\'m getting in index.')
+  const users = User.find()
+
+  .then(users => {
+    // users: users.map((e) => e.toJSON())
+    return users
+  })
   Upload.find()
-    .then(uploads => res.json({
-      uploads: uploads.map((e) =>
-        e.toJSON({ virtuals: true, user: req.user })),
-    }))
+    .then( uploads => res.json({
+      uploads: uploads.map(function (e) {
+        console.log(users)
+        // console.log(e._owner)
+        // const email = users.find( u => u.id === e._owner)
+        return e.toJSON({ virtuals: true, user: req.user })
+    })
+  }))
     .catch(next);
 };
-// user can see files
 const show = (req, res) => {
+    console.log('I\'m getting in show.')
   res.json({
     upload: req.upload.toJSON({ virtuals: true, user: req.user }),
   });
 };
-// user uploads file
 const create = (req, res, next) => {
-
   const file = {
     path: req.file.path,
     name: req.body.file.name,
     originalname: req.file.originalname,
     mimetype: req.file.mimetype
   }
-
   s3Upload(file)
   .then((s3Response) => {
     return Upload.create({
@@ -49,18 +53,15 @@ const create = (req, res, next) => {
     })
   })
   .then(() => res.sendStatus(200))
-  .catch(next)
-
-
+  .catch((error) => {console.error})
 };
-// update file title if owner otherwise return error
 const update = (req, res, next) => {
+    console.log('I\'m getting in update.')
   delete req.body._owner;  // disallow owner reassignment.
   req.upload.update(req.body.upload)
     .then(() => res.sendStatus(204))
     .catch(next);
 };
-// delete file if owner otherwise return error
 const destroy = (req, res, next) => {
   Upload.findOne( { _id: req.params.id, _owner: req.user._id } )
     .then(upload_rec => {
@@ -69,13 +70,13 @@ const destroy = (req, res, next) => {
       } else {
         // to get the file name, need to strip off the front
         // part of the url
-        const URL = require('url')
+        const URL = require('URL')
         const u = URL.parse(upload_rec.url)
         // this pathname will have a leading slash - remove that too
         const pathname = u.pathname.substr(1)
         s3Delete(pathname)
           .then(function() {
-            return req.upload.remove()
+            return Upload.remove()
               .then(() => res.sendStatus(200))
               .catch(err => next(err))
           })
@@ -84,8 +85,6 @@ const destroy = (req, res, next) => {
     })
     .catch(err => next(err))
 }
-
-
 module.exports = controller({
   index,
   show,
