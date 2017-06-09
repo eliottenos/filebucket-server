@@ -13,7 +13,6 @@ const s3Delete = require('lib/aws-s3-delete')
 const index = (req, res, next) => {
   console.log('I\'m getting in index.')
   const users = User.find()
-
   .then(users => {
     // users: users.map((e) => e.toJSON())
     return users
@@ -21,9 +20,11 @@ const index = (req, res, next) => {
   Upload.find()
     .then( uploads => res.json({
       uploads: uploads.map(function (e) {
-        console.log(users)
+        console.log('look', e)
         // console.log(e._owner)
-        // const email = users.find( u => u.id === e._owner)
+         User.findOne({ '_id':e._owner}).then(function(user){
+           console.log('user we get back: ', user)
+         })
         return e.toJSON({ virtuals: true, user: req.user })
     })
   }))
