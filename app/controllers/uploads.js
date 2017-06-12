@@ -11,25 +11,41 @@ const setModel = require('./concerns/set-mongoose-model');
 const s3Upload = require('lib/aws-s3-upload')
 const s3Delete = require('lib/aws-s3-delete')
 const index = (req, res, next) => {
-  console.log('I\'m getting in index.')
-  const users = User.find()
-  .then(users => {
-    // users: users.map((e) => e.toJSON())
-    return users
-  })
   Upload.find()
-    .then( uploads => res.json({
-      uploads: uploads.map(function (e) {
-        console.log('look', e)
-        // console.log(e._owner)
-         User.findOne({ '_id':e._owner}).then(function(user){
-           console.log('user we get back: ', user)
-         })
-        return e.toJSON({ virtuals: true, user: req.user })
-    })
-  }))
+    .then(uploads => res.json({
+      uploads: uploads.map((e) =>
+        e.toJSON({ virtuals: true, user: req.user })),
+    }))
     .catch(next);
 };
+// user can see files
+// const index = (req, res, next) => {
+//   // Upload.find().then(function(uploads) {
+  //   uploads.map(function(upload) {
+  //     User.findOne({'_id': upload._owner}).then(function(owner) {
+  //       let email = owner.email
+  //       return [upload, email]
+  //     })
+  //   })
+  // }).then( users => res.json({ users }))
+  // console.log('I\'m getting in index.')
+  // const users = User.find()
+  // .then(users => {
+  //   // users: users.map((e) => e.toJSON())
+  //   return users
+  // })
+  // Upload.find()
+//     .then( uploads => res.json({
+//       uploads: uploads.map(function (e) {
+//         console.log(e)
+//         User.findOne({'_id': e._owner}).then(function(owner) {
+//           return [e, owner.email]
+//         })
+//     })
+//   }))
+//     .catch(next);
+// };
+
 const show = (req, res) => {
     console.log('I\'m getting in show.')
   res.json({
